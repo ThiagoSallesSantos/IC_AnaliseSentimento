@@ -63,10 +63,10 @@ def ler_datasets(dir: str, dir_dataset: str, tipo: str = ".json") -> dict[str, D
         exit()
 
 def get_num_k_fold(dict_datasets: dict[str, Dataset]) -> int:
-    return len(set(dict_datasets.values[0]["group"]))
+    return len(set(list(dict_datasets.values())[0]["group"]))
 
 def get_num_class(dict_datasets: dict[str, Dataset]) -> int:
-    return len(dict_datasets.values[0]["label"][0])
+    return len(list(dict_datasets.values())[0]["labels"][0])
 
 def get_tokenizer(model_id: str):
     try:
