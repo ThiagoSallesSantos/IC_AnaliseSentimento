@@ -9,8 +9,6 @@ import json
 import sys
 import os
 
-num_k_fold = 10
-
 ## Métricas - Inicio
 
 def func_precision(y_true, y_pred):
@@ -46,7 +44,7 @@ def verifica_GPU() -> None:
             tf.config.experimental.set_memory_growth(gpu, True)
         print("Finalizado Verificação da GPU")
     except AssertionError as e:
-        print(f"Erro: GPU não foi encontrada\nMais detalhes: {e}")
+        print(f"Erro: GPU não foi encontrada: {e}")
         exit()
     except Exception as e:
         print(f"Erro ao verificar a GPU: {e}")
@@ -63,6 +61,12 @@ def ler_datasets(dir: str, dir_dataset: str, tipo: str = ".json") -> dict[str, D
     except Exception as e:
         print(f"Erro ao ler os datasets: {e}")
         exit()
+
+def get_num_k_fold(dict_datasets: dict[str, Dataset]) -> int:
+    return len(set(dict_datasets.values[0]["group"]))
+
+def get_num_class(dict_datasets: dict[str, Dataset]) -> int:
+    return len(dict_datasets.values[0]["label"][0])
 
 def get_tokenizer(model_id: str):
     try:
@@ -175,7 +179,7 @@ def treinamento_aux(model, tokenizer, list_dataset: list[Dataset], optimizer, ep
         }))
     return resultado
 
-def treinamento(dir: str, dir_resultado: str, model, tokenizer, dict_datasets: dict[str, list[Dataset]], epochs: int, batchs: int) -> None:
+def treinamento(dir: str, dir_resultado: str, model, tokenizer, dict_datasets: dict[str, list[Dataset]], epochs: int, batchs: int, num_k_fold: int) -> None:
     try:
         print("Iniciado o Treinamento GERAL")
         optimizer = cria_otimizador((num_k_fold  // batchs) * epochs)
@@ -194,16 +198,21 @@ def treinamento(dir: str, dir_resultado: str, model, tokenizer, dict_datasets: d
         print(f"Erro no treinamento: {e}")
         exit()
 
-def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, epochs: int, batchs: int, num_labels: int) -> None:
+def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, epochs: int, batchs: int) -> None:
     try:
         print("Iniciado a execução do código!")
         verifica_GPU()
         dict_datasets = ler_datasets(dir, dir_dataset)
+        num_k_fold = get_num_k_fold(dict_datasets)
+        print(f"NUM K_FOLD: {num_k_fold}")
+        num_class = get_num_class(dict_datasets)
+        print(f"NUM CLASS: {num_class}")
+        assert False
         tokenizer = get_tokenizer(model_id)
-        model = get_modelo(model_id)
+        model = get_modelo(model_id, num_class)
         dict_datasets = tokenizador(dict_datasets, tokenizer)
         dict_datasets = group_by(dict_datasets)
-        treinamento(dir, dir_resultado, model, tokenizer, dict_datasets, epochs, batchs)
+        treinamento(dir, dir_resultado, model, tokenizer, dict_datasets, epochs, batchs, num_k_fold)
         print("Código executado com sucesso!")
     except Exception as error:
         print(f"Erro no main: {error}")
@@ -213,14 +222,13 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, epochs: 
 if __name__ == "__main__":
     ## Pegando valores por linha de comando
     try:
-        dir: str = "../" if not len(sys.argv) >= 2 else sys.argv[1]
+        dir: str = "./" if not len(sys.argv) >= 2 else sys.argv[1]
         dir_dataset: str = "data/" if not len(sys.argv) >= 3 else sys.argv[2]
         dir_resultado: str = "results/" if not len(sys.argv) >= 4 else sys.argv[3]
         model_id: str = "neuralmind/bert-base-portuguese-cased" if not len(sys.argv) >= 5 else sys.argv[4]
         epochs: int = 3 if not len(sys.argv) >= 6 else sys.argv[5]
         batchs: int = 16 if not len(sys.argv) >= 7 else sys.argv[6]
-        num_labels: int = 3 if not len(sys.argv) >= 8 else sys.argv[7]
-        main(dir, dir_dataset, dir_resultado, model_id, epochs, batchs, num_labels)
+        main(dir, dir_dataset, dir_resultado, model_id, epochs, batchs)
     except Exception as error:
         print(f"Error ao pegar as informações passadas por linha de comando: {error}")
         exit()
