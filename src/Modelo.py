@@ -203,7 +203,7 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, epochs: 
 
             logging.info(f"\t- Salvando os resultados obtidos - Inicio")
             with open(f"{dir}{dir_resultado}{arquivo_nome}", "w") as arquivo:
-                json.dump([""], arquivo, indent=4)
+                json.dump(resultado, arquivo, indent=4)
             logging.info(f"\t- Salvando os resultados obtidos - Inicio")
 
             logging.info(f"- Processo de treinamento usando o dataset {arquivo_nome} - Fim")
