@@ -11,7 +11,7 @@ import sys
 import os
 
 ## Sistema de Log
-logging.basicConfig(format='%(levelname)s: %(message)s - (%(asctime)s)', filename='log.txt', encoding='utf-8', datefmt="%d/%m/%Y %I:%M:%S")
+logging.basicConfig(format='%(levelname)s: %(message)s - (%(asctime)s)', filename='log.txt', encoding='utf-8', datefmt="%d/%m/%Y %I:%M:%S", level=logging.DEBUG)
 
 ## Métricas - Inicio
 
@@ -46,17 +46,17 @@ def verifica_GPU() -> None:
         for gpu in lista_gpu:
             tf.config.experimental.set_memory_growth(gpu, True)
     except AssertionError as e:
-        logging.critical(f"Erro: GPU não foi encontrada: {e}")
+        logging.error(f"Erro: GPU não foi encontrada: {e}")
         exit()
     except Exception as e:
-        logging.critical(f"Erro ao verificar a GPU: {e}")
+        logging.error(f"Erro ao verificar a GPU: {e}")
         exit()
 
 def ler_datasets(dir: str, arquivo_nome: str) -> Dataset:
     try:
         return Dataset.from_json(dir)
     except Exception as e:
-        logging.CRITICAL(f"Erro ao ler os datasets: {e}")
+        logging.error(f"Erro ao ler os datasets: {e}")
         exit()
 
 def get_num_k_fold(dataset: dict[str, Dataset]) -> int:
@@ -69,14 +69,14 @@ def get_tokenizer(model_id: str):
     try:
         return AutoTokenizer.from_pretrained(model_id)
     except Exception as e:
-        logging.critical(f"Erro ao pegar o tokenizer: {e}")
+        logging.error(f"Erro ao pegar o tokenizer: {e}")
         exit()
 
 def get_modelo(model_id: str, num_labels: int):
     try:
         return TFAutoModelForSequenceClassification.from_pretrained(model_id, num_labels=num_labels)
     except Exception as e:
-        logging.critical(f"Erro ao pegar o modelo: {e}")
+        logging.error(f"Erro ao pegar o modelo: {e}")
         exit()
     
 def tokenize_dataset(data, **kw_args):
@@ -87,7 +87,7 @@ def tokenizador(dataset: Dataset, tokenizer) -> Dataset:
         dataset = dataset.map(tokenize_dataset, batched=True, fn_kwargs=dict({"tokenizer": tokenizer}))
         return dataset
     except Exception as e:
-        logging.critical(f"Erro realizar a tokenização: {e}")
+        logging.error(f"Erro realizar a tokenização: {e}")
         exit()
 
 def group_by(dataset: Dataset) -> list[Dataset]:
@@ -106,7 +106,7 @@ def cria_otimizador(num_train_steps: int):
         )
         return optimizer
     except Exception as e:
-        logging.critical(f"Erro ao criar o otimizador: {e}")
+        logging.error(f"Erro ao criar o otimizador: {e}")
         exit()
 
 def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, epochs: int, batchs: int) -> None:
@@ -150,7 +150,7 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, ep
             }))
         return resultado
     except Exception as e:
-        logging.critical(f"Erro no treinamento: {e}")
+        logging.error(f"Erro no treinamento: {e}")
         exit()
 
 def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, epochs: int, batchs: int) -> None:
@@ -185,32 +185,32 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, epochs: 
             model = get_modelo(model_id, num_class)
             logging.info(f"\t- Pegando o modelo para treinamento com qtd classes: {num_class} - Fim")
 
-            # logging.info(f"\t- Tokenizando os dados do dataset {arquivo_nome} - Inicio")
-            # dataset = tokenizador(dataset, tokenizer)
-            # logging.info(f"\t- Tokenizando os dados do dataset {arquivo_nome} - Fim")
+            logging.info(f"\t- Tokenizando os dados do dataset {arquivo_nome} - Inicio")
+            dataset = tokenizador(dataset, tokenizer)
+            logging.info(f"\t- Tokenizando os dados do dataset {arquivo_nome} - Fim")
 
-            # logging.info(f"\t- Agrupando os dados do dataset {arquivo_nome} - Inicio")
-            # dataset_agrupado = group_by(dataset)
-            # logging.info(f"\t- Agrupando os dados do dataset {arquivo_nome} - Fim")
+            logging.info(f"\t- Agrupando os dados do dataset {arquivo_nome} - Inicio")
+            dataset_agrupado = group_by(dataset)
+            logging.info(f"\t- Agrupando os dados do dataset {arquivo_nome} - Fim")
 
-            # logging.info("\t- Criando um otimizador - Inicio")
-            # optimizer = cria_otimizador((num_k_fold  // batchs) * epochs)
-            # logging.info("\t- Criando um otimizador - Inicio")
+            logging.info("\t- Criando um otimizador - Inicio")
+            optimizer = cria_otimizador((num_k_fold  // batchs) * epochs)
+            logging.info("\t- Criando um otimizador - Inicio")
 
-            # logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Inicio")
-            # resultado = treinamento(model, tokenizer, dataset_agrupado, optimizer, epochs, batchs)
-            # logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Fim")
+            logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Inicio")
+            resultado = treinamento(model, tokenizer, dataset_agrupado, optimizer, epochs, batchs)
+            logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Fim")
 
-            # logging.info(f"\t- Salvando os resultados obtidos - Inicio")
-            # with open(f"{dir}{dir_resultado}{arquivo_nome}", "w") as arquivo:
-            #     json.dump(resultado, arquivo, indent=4)
-            # logging.info(f"\t- Salvando os resultados obtidos - Inicio")
+            logging.info(f"\t- Salvando os resultados obtidos - Inicio")
+            with open(f"{dir}{dir_resultado}{arquivo_nome}", "w") as arquivo:
+                json.dump([""], arquivo, indent=4)
+            logging.info(f"\t- Salvando os resultados obtidos - Inicio")
 
             logging.info(f"- Processo de treinamento usando o dataset {arquivo_nome} - Fim")
 
         logging.info("---Código executado com sucesso!---")
     except Exception as e:
-        logging.critical(f"Erro no main: {e}")
+        logging.error(f"Erro no main: {e}")
         exit()
 
 if __name__ == "__main__":
@@ -224,6 +224,6 @@ if __name__ == "__main__":
         batchs: int = 16 if not len(sys.argv) >= 7 else sys.argv[6]
         main(dir, dir_dataset, dir_resultado, model_id, epochs, batchs)
     except Exception as e:
-        logging.critical(f"Error ao pegar as informações passadas por linha de comando: {e}")
+        logging.error(f"Error ao pegar as informações passadas por linha de comando: {e}")
         exit()
 
