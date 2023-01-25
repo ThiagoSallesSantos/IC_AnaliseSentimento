@@ -1,0 +1,72 @@
+[
+    {
+        "loss": NaN,
+        "accuracy": 0.299369752407074,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+    },
+    {
+        "loss": NaN,
+        "accuracy": 0.29963234066963196,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+    },
+    {
+        "loss": NaN,
+        "accuracy": 0.29963234066963196,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+    },
+    {
+        "loss": NaN,
+        "accuracy": 0.29963234066963196,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+    },
+    {
+        "loss": NaN,
+        "accuracy": 0.29963234066963196,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+    },
+    {
+        "loss": NaN,
+        "accuracy": 0.29963234066963196,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+    },
+    {
+        "loss": NaN,
+        "accuracy": 0.29963234066963196,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+    },
+    {
+        "loss": NaN,
+        "accuracy": 0.29963234066963196,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+    },
+    {
+        "loss": NaN,
+        "accuracy": 0.29963234066963196,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+    },
+    {
+        "loss": NaN,
+        "accuracy": 0.2987869083881378,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+    }
+]
