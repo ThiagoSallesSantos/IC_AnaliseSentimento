@@ -59,8 +59,11 @@ def ler_datasets(dir: str, arquivo_nome: str) -> Dataset:
         logging.error(f"Erro ao ler os datasets: {e}")
         exit()
 
-def get_num_k_fold(dataset: dict[str, Dataset]) -> int:
-    return len(set(dataset["group"]))
+def get_mean_agrupamento(lista_dataset: list[Dataset]) -> int:
+    soma = 0
+    for dataset in lista_dataset:
+        soma += len(dataset)
+    return round(soma/len(lista_dataset))
 
 def get_num_class(dataset: dict[str, Dataset]) -> int:
     return len(dataset["labels"][0])
@@ -109,20 +112,18 @@ def cria_otimizador(num_train_steps: int):
         logging.error(f"Erro ao criar o otimizador: {e}")
         exit()
 
-def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, epochs: int, batchs: int) -> None:
+def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, num_epochs: int, num_batchs: int) -> None:
     try:
         resultado = []
         for index, dataset in enumerate(dataset_agrupado):
-            ## Dividindo a parte de Treino
+            ## Treino
             dataset_treino = dataset_agrupado[:index]
             dataset_treino += dataset_agrupado[index+1:]
             dataset_treino = concatenate_datasets(dataset_treino)
-            tf_dataset_treino = model.prepare_tf_dataset(dataset_treino, batch_size=batchs, shuffle=True, tokenizer=tokenizer)
-            ##############################
-            ## Dividindo a parte de Teste
-            tf_dataset_teste = model.prepare_tf_dataset(dataset, batch_size=batchs, shuffle=True, tokenizer=tokenizer)
-            #############################
-            ## Compilando o Modelo
+            tf_dataset_treino = model.prepare_tf_dataset(dataset_treino, batch_size=num_batchs, shuffle=True, tokenizer=tokenizer)
+            ## Teste
+            tf_dataset_teste = model.prepare_tf_dataset(dataset, batch_size=num_batchs, shuffle=True, tokenizer=tokenizer)
+            ## Modelo
             model.compile(
                 optimizer=optimizer,
                 loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
@@ -134,26 +135,22 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, ep
                 ],
                 run_eagerly = True
             )
-            ######################
-            ## Treinando o Modelo
-            history = model.fit(tf_dataset_treino, epochs=epochs, use_multiprocessing=True)
-            #####################
-            ## Testando o Modelo
+            history = model.fit(tf_dataset_treino, use_multiprocessing=True, epochs=num_epochs)
             loss, acc, precision, recall, f1 = model.evaluate(tf_dataset_teste, use_multiprocessing=True)
             ####################
-            resultado.append(dict({
-                "loss" : loss,
-                "accuracy" : acc,
-                "precision" : precision,
-                "recall" : recall,
-                "f1" : f1
-            }))
+            # resultado.append(dict({
+            #     "loss" : loss,
+            #     "accuracy" : acc,
+            #     "precision" : precision,
+            #     "recall" : recall,
+            #     "f1" : f1
+            # }))
         return resultado
     except Exception as e:
         logging.error(f"Erro no treinamento: {e}")
         exit()
 
-def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, epochs: int, batchs: int) -> None:
+def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, num_epochs: int, num_batchs: int) -> None:
     try:
         logging.info("---Iniciado a execução do código!---")
         ## Verificando compatibiliada com a GPU
@@ -167,7 +164,12 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, epochs: 
         logging.info("- Pegando o tokenizador - Fim")
 
         ## For para percorrer os datasets a serem utilizados no treinamento
-        for arquivo_nome in list(filter(lambda x: x.endswith(".json"), os.listdir(dir+dir_dataset))):
+        for arquivo_nome in list(filter(lambda x: x.endswith(".json"), os.listdir(f"{dir}{dir_dataset}"))):
+
+            if arquivo_nome in os.listdir(f"{dir}{dir_resultado}"):
+                logging.info(f"- Já foi realizado o treinamento com o dataset {arquivo_nome}- Inicio / Fim")
+                continue
+            
             logging.info(f"- Processo de treinamento usando o dataset {arquivo_nome} - Inicio")
 
             ## Lendo Dataset
@@ -176,10 +178,9 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, epochs: 
             logging.info(f"\t- Lendo o dataset {arquivo_nome} - Fim")
 
             ## Pegando o valor de k-fold e num_class do dataset
-            logging.info("\t- Pegando valores de k-fold e quantidade de classes (Positivo, Negativo e Neutro) - Inicio")
-            num_k_fold = get_num_k_fold(dataset)
+            logging.info("\t- Pegando a quantidade de classes (Positivo, Negativo e Neutro) - Inicio")
             num_class = get_num_class(dataset)
-            logging.info("\t- Pegando valores de k-fold e quantidade de classes (Positivo, Negativo e Neutro) - Fim")
+            logging.info("\t- Pegando a quantidade de classes (Positivo, Negativo e Neutro) - Fim")
             
             logging.info(f"\t- Pegando o modelo para treinamento com qtd classes: {num_class} - Inicio")
             model = get_modelo(model_id, num_class)
@@ -193,12 +194,16 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, epochs: 
             dataset_agrupado = group_by(dataset)
             logging.info(f"\t- Agrupando os dados do dataset {arquivo_nome} - Fim")
 
+            logging.info("\t- Pegando o tamanho medio dos agrupamentos - Inicio")
+            tam_mean = get_mean_agrupamento(dataset_agrupado)
+            logging.info("\t- Pegando o tamanho medio dos agrupamentos - Inicio")
+
             logging.info("\t- Criando um otimizador - Inicio")
-            optimizer = cria_otimizador((num_k_fold  // batchs) * epochs)
+            optimizer = cria_otimizador((tam_mean  // num_batchs) * num_epochs)
             logging.info("\t- Criando um otimizador - Inicio")
 
             logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Inicio")
-            resultado = treinamento(model, tokenizer, dataset_agrupado, optimizer, epochs, batchs)
+            resultado = treinamento(model, tokenizer, dataset_agrupado, optimizer, num_epochs, num_batchs)
             logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Fim")
 
             logging.info(f"\t- Salvando os resultados obtidos - Inicio")
@@ -207,6 +212,9 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, epochs: 
             logging.info(f"\t- Salvando os resultados obtidos - Inicio")
 
             logging.info(f"- Processo de treinamento usando o dataset {arquivo_nome} - Fim")
+
+            ## Deletanto variaveis
+            del model
 
         logging.info("---Código executado com sucesso!---")
     except Exception as e:
@@ -220,9 +228,9 @@ if __name__ == "__main__":
         dir_dataset: str = "data/" if not len(sys.argv) >= 3 else sys.argv[2]
         dir_resultado: str = "results/" if not len(sys.argv) >= 4 else sys.argv[3]
         model_id: str = "neuralmind/bert-base-portuguese-cased" if not len(sys.argv) >= 5 else sys.argv[4]
-        epochs: int = 3 if not len(sys.argv) >= 6 else sys.argv[5]
-        batchs: int = 16 if not len(sys.argv) >= 7 else sys.argv[6]
-        main(dir, dir_dataset, dir_resultado, model_id, epochs, batchs)
+        num_epochs: int = 3 if not len(sys.argv) >= 6 else sys.argv[5]
+        num_batchs: int = 16 if not len(sys.argv) >= 7 else sys.argv[6]
+        main(dir, dir_dataset, dir_resultado, model_id, num_epochs, num_batchs)
     except Exception as e:
         logging.error(f"Error ao pegar as informações passadas por linha de comando: {e}")
         exit()
