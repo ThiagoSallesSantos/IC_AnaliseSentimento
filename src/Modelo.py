@@ -112,6 +112,11 @@ def cria_otimizador(num_train_steps: int):
         logging.error(f"Erro ao criar o otimizador: {e}")
         exit()
 
+def remove_colunas(lista_dataset: list[Dataset], colunas: list[str] = ["text", "group"]):
+    for index, dataset in enumerate(lista_dataset):
+        lista_dataset[index] = dataset.remove_columns(colunas)
+    return lista_dataset
+
 def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, num_epochs: int, num_batchs: int) -> None:
     try:
         resultado = []
@@ -202,6 +207,10 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, num_epoc
             optimizer = cria_otimizador((tam_mean  // num_batchs) * num_epochs)
             logging.info("\t- Criando um otimizador - Inicio")
 
+            logging.info(f"\t- Removendo colunas desnecessárias do dataset {arquivo_nome} - Inicio")
+            dataset_agrupado = remove_colunas(dataset_agrupado)
+            logging.info(f"\t- Removendo colunas desnecessárias do dataset {arquivo_nome} - Fim")    
+
             logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Inicio")
             resultado = treinamento(model, tokenizer, dataset_agrupado, optimizer, num_epochs, num_batchs)
             logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Fim")
@@ -227,7 +236,7 @@ if __name__ == "__main__":
         dir: str = "./" if not len(sys.argv) >= 2 else sys.argv[1]
         dir_dataset: str = "data/" if not len(sys.argv) >= 3 else sys.argv[2]
         dir_resultado: str = "results/" if not len(sys.argv) >= 4 else sys.argv[3]
-        model_id: str = "neuralmind/bert-base-portuguese-cased" if not len(sys.argv) >= 5 else sys.argv[4]
+        model_id: str = 'neuralmind/bert-base-portuguese-cased' if not len(sys.argv) >= 5 else sys.argv[4]
         num_epochs: int = 3 if not len(sys.argv) >= 6 else sys.argv[5]
         num_batchs: int = 16 if not len(sys.argv) >= 7 else sys.argv[6]
         main(dir, dir_dataset, dir_resultado, model_id, num_epochs, num_batchs)
