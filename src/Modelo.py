@@ -143,13 +143,13 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, nu
             history = model.fit(tf_dataset_treino, use_multiprocessing=True, epochs=num_epochs)
             loss, acc, precision, recall, f1 = model.evaluate(tf_dataset_teste, use_multiprocessing=True)
             ####################
-            # resultado.append(dict({
-            #     "loss" : loss,
-            #     "accuracy" : acc,
-            #     "precision" : precision,
-            #     "recall" : recall,
-            #     "f1" : f1
-            # }))
+            resultado.append(dict({
+                "loss" : loss,
+                "accuracy" : acc,
+                "precision" : precision,
+                "recall" : recall,
+                "f1" : f1
+            }))
         return resultado
     except Exception as e:
         logging.error(f"Erro no treinamento: {e}")
