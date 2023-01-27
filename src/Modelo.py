@@ -201,11 +201,11 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, num_epoc
 
             logging.info("\t- Pegando o tamanho medio dos agrupamentos - Inicio")
             tam_mean = get_mean_agrupamento(dataset_agrupado)
-            logging.info("\t- Pegando o tamanho medio dos agrupamentos - Inicio")
+            logging.info("\t- Pegando o tamanho medio dos agrupamentos - Fim")
 
             logging.info("\t- Criando um otimizador - Inicio")
             optimizer = cria_otimizador((tam_mean  // num_batchs) * num_epochs)
-            logging.info("\t- Criando um otimizador - Inicio")
+            logging.info("\t- Criando um otimizador - Fim")
 
             logging.info(f"\t- Removendo colunas desnecessárias do dataset {arquivo_nome} - Inicio")
             dataset_agrupado = remove_colunas(dataset_agrupado)
@@ -218,11 +218,12 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, num_epoc
             logging.info(f"\t- Salvando os resultados obtidos - Inicio")
             with open(f"{dir}{dir_resultado}{arquivo_nome}", "w") as arquivo:
                 json.dump(resultado, arquivo, indent=4)
-            logging.info(f"\t- Salvando os resultados obtidos - Inicio")
+            logging.info(f"\t- Salvando os resultados obtidos - Fim")
 
             logging.info(f"- Processo de treinamento usando o dataset {arquivo_nome} - Fim")
 
-            ## Deletanto variaveis
+            ## Limpando memórias
+            K.clear_session()
             del model
 
         logging.info("---Código executado com sucesso!---")
