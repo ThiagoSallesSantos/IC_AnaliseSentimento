@@ -10,21 +10,34 @@ import json
 import sys
 import os
 
+## Constantes
+MEMORIA_CPU = 24 * 1024
+
 ## Sistema de Log
 logging.basicConfig(format='%(levelname)s: %(message)s - (%(asctime)s)', filename='log.txt', encoding='utf-8', datefmt="%d/%m/%Y %I:%M:%S", level=logging.DEBUG)
 
 ## Métricas - Inicio
+def func_loss(y_true, y_pred):
+    loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+    return loss(y_true, y_pred.logits).numpy()
+
+def func_acc(y_true, y_pred):
+    y_pred = np.argmax(y_pred.logits, axis=1)
+    y_true = np.argmax(y_true, axis=1)
+    acc = tf.keras.metrics.Accuracy()
+    acc.update_state(y_true, y_pred)
+    return acc.result().numpy()
 
 def func_precision(y_true, y_pred):
-    y_pred = np.argmax(y_pred.numpy(), axis=1)
-    y_true = np.argmax(y_true.numpy(), axis=1)
+    y_pred = np.argmax(y_pred.logits, axis=1)
+    y_true = np.argmax(y_true, axis=1)
     precision = tf.keras.metrics.Precision()
     precision.update_state(y_true, y_pred)
     return precision.result().numpy()
 
 def func_recall(y_true, y_pred):
-    y_pred = np.argmax(y_pred.numpy(), axis=1)
-    y_true = np.argmax(y_true.numpy(), axis=1)
+    y_pred = np.argmax(y_pred.logits, axis=1)
+    y_true = np.argmax(y_true, axis=1)
     recall = tf.keras.metrics.Recall()
     recall.update_state(y_true, y_pred)
     return recall.result().numpy()
@@ -34,17 +47,27 @@ def func_f1(y_true, y_pred):
     recall = func_recall(y_true, y_pred)
     return 2*((precision*recall)/(precision+recall+K.epsilon()))
 
+def func_roc_auc(y_true, y_pred):
+    y_pred = np.argmax(y_pred.logits, axis=1)
+    y_true = np.argmax(y_true, axis=1)
+    roc_auc = tf.keras.metrics.AUC()
+    roc_auc.update_state(y_true, y_pred)
+    return roc_auc.result().numpy()
+
 ###############- Fim
 
 def busca_GPU() -> list:
     return tf.config.list_physical_devices("GPU")
 
-def verifica_GPU() -> None:
+def verifica_GPU(poct_memoria_cpu: int) -> None:
     try:
         lista_gpu = busca_GPU()
         assert lista_gpu
         for gpu in lista_gpu:
-            tf.config.experimental.set_memory_growth(gpu, True)
+            tf.config.set_logical_device_configuration(
+                gpu,
+                [tf.config.LogicalDeviceConfiguration(memory_limit=MEMORIA_CPU * poct_memoria_cpu)]
+            )
     except AssertionError as e:
         logging.error(f"Erro: GPU não foi encontrada: {e}")
         exit()
@@ -52,7 +75,7 @@ def verifica_GPU() -> None:
         logging.error(f"Erro ao verificar a GPU: {e}")
         exit()
 
-def ler_datasets(dir: str, arquivo_nome: str) -> Dataset:
+def ler_datasets(dir: str) -> Dataset:
     try:
         return Dataset.from_json(dir)
     except Exception as e:
@@ -83,11 +106,11 @@ def get_modelo(model_id: str, num_labels: int):
         exit()
     
 def tokenize_dataset(data, **kw_args):
-    return kw_args["tokenizer"](data["text"], padding=True, return_tensors="tf")
+    return kw_args["tokenizer"](data["text"], padding=True, return_tensors="tf", max_length=kw_args["max_length"], truncation=True)
 
-def tokenizador(dataset: Dataset, tokenizer) -> Dataset:
+def tokenizador(dataset: Dataset, tokenizer, max_length: int, num_batchs: int) -> Dataset:
     try:
-        dataset = dataset.map(tokenize_dataset, batched=True, fn_kwargs=dict({"tokenizer": tokenizer}))
+        dataset = dataset.map(tokenize_dataset, batched=True, batch_size=num_batchs, fn_kwargs=dict({"tokenizer": tokenizer, "max_length": max_length}))
         return dataset
     except Exception as e:
         logging.error(f"Erro realizar a tokenização: {e}")
@@ -119,48 +142,56 @@ def remove_colunas(lista_dataset: list[Dataset], colunas: list[str] = ["text", "
 
 def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, num_epochs: int, num_batchs: int) -> None:
     try:
-        resultado = []
-        for index, dataset in enumerate(dataset_agrupado):
-            ## Treino
-            dataset_treino = dataset_agrupado[:index]
-            dataset_treino += dataset_agrupado[index+1:]
-            dataset_treino = concatenate_datasets(dataset_treino)
-            tf_dataset_treino = model.prepare_tf_dataset(dataset_treino, batch_size=num_batchs, shuffle=True, tokenizer=tokenizer)
-            ## Teste
-            tf_dataset_teste = model.prepare_tf_dataset(dataset, batch_size=num_batchs, shuffle=True, tokenizer=tokenizer)
-            ## Modelo
-            model.compile(
-                optimizer=optimizer,
-                loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
-                metrics=[
-                    tf.keras.metrics.CategoricalAccuracy(),
-                    func_precision,
-                    func_recall,
-                    func_f1
-                ],
-                run_eagerly = True
-            )
-            history = model.fit(tf_dataset_treino, use_multiprocessing=True, epochs=num_epochs)
-            loss, acc, precision, recall, f1 = model.evaluate(tf_dataset_teste, use_multiprocessing=True)
-            ####################
-            resultado.append(dict({
-                "loss" : loss,
-                "accuracy" : acc,
-                "precision" : precision,
-                "recall" : recall,
-                "f1" : f1
-            }))
-        return resultado
+        ## Treino
+        dataset_treino = dataset_agrupado[:-1]
+        dataset_treino = concatenate_datasets(dataset_treino)
+        tf_dataset_treino = model.prepare_tf_dataset(dataset_treino, batch_size=num_batchs, shuffle=True, tokenizer=tokenizer)
+        
+        ## Teste
+        tf_dataset_teste = model.prepare_tf_dataset(dataset_agrupado[-1], batch_size=num_batchs, shuffle=False, tokenizer=tokenizer)
+        
+        ## Modelo
+        model.compile(
+            optimizer=optimizer,
+            loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+            metrics=[
+                tf.keras.metrics.CategoricalAccuracy()
+            ]
+        )
+
+        ## Treinamento
+        model.fit(tf_dataset_treino, batch_size=num_batchs, epochs=num_epochs, use_multiprocessing=True)
+
+        ## Teste
+        y_pred = model.predict(tf_dataset_teste, batch_size=num_batchs, use_multiprocessing=True)
+
+        ## Metricas
+        acc = func_acc(dataset_agrupado[-1]["labels"], y_pred)
+        precision = func_precision(dataset_agrupado[-1]["labels"], y_pred)
+        recall = func_recall(dataset_agrupado[-1]["labels"], y_pred)
+        f1 = func_f1(dataset_agrupado[-1]["labels"], y_pred)
+        loss = func_loss(dataset_agrupado[-1]["labels"], y_pred)
+        roc_auc = func_roc_auc(dataset_agrupado[-1]["labels"], y_pred)
+        ####################
+
+        return list([dict({
+            "loss" : float(loss),
+            "accuracy" : float(acc),
+            "precision" : float(precision),
+            "recall" : float(recall),
+            "f1" : float(f1),
+            "roc_auc" : float(roc_auc)
+        })])
     except Exception as e:
         logging.error(f"Erro no treinamento: {e}")
         exit()
 
-def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, num_epochs: int, num_batchs: int) -> None:
+def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, max_length: int, num_epochs: int, num_batchs: int, poct_memoria_cpu: float) -> None:
     try:
         logging.info("---Iniciado a execução do código!---")
         ## Verificando compatibiliada com a GPU
         logging.info("- Verificando compatibilidade com a GPU - Inicio")
-        verifica_GPU()
+        verifica_GPU(poct_memoria_cpu)
         logging.info("- Verificando compatibilidade com a GPU - Fim")
 
         ## Pegando Tokenizador a ser utiizado por todos os dataset's
@@ -179,7 +210,7 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, num_epoc
 
             ## Lendo Dataset
             logging.info(f"\t- Lendo o dataset {arquivo_nome} - Inicio")
-            dataset = ler_datasets(f"{dir}{dir_dataset}{arquivo_nome}", arquivo_nome)
+            dataset = ler_datasets(f"{dir}{dir_dataset}{arquivo_nome}")
             logging.info(f"\t- Lendo o dataset {arquivo_nome} - Fim")
 
             ## Pegando o valor de k-fold e num_class do dataset
@@ -192,7 +223,7 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, num_epoc
             logging.info(f"\t- Pegando o modelo para treinamento com qtd classes: {num_class} - Fim")
 
             logging.info(f"\t- Tokenizando os dados do dataset {arquivo_nome} - Inicio")
-            dataset = tokenizador(dataset, tokenizer)
+            dataset = tokenizador(dataset, tokenizer, max_length, num_batchs)
             logging.info(f"\t- Tokenizando os dados do dataset {arquivo_nome} - Fim")
 
             logging.info(f"\t- Agrupando os dados do dataset {arquivo_nome} - Inicio")
@@ -238,9 +269,11 @@ if __name__ == "__main__":
         dir_dataset: str = "data/" if not len(sys.argv) >= 3 else sys.argv[2]
         dir_resultado: str = "results/" if not len(sys.argv) >= 4 else sys.argv[3]
         model_id: str = 'neuralmind/bert-base-portuguese-cased' if not len(sys.argv) >= 5 else sys.argv[4]
-        num_epochs: int = 3 if not len(sys.argv) >= 6 else sys.argv[5]
-        num_batchs: int = 16 if not len(sys.argv) >= 7 else sys.argv[6]
-        main(dir, dir_dataset, dir_resultado, model_id, num_epochs, num_batchs)
+        max_length: int = 128 if not len(sys.argv) >= 6 else sys.argv[5]
+        num_epochs: int = 3 if not len(sys.argv) >= 7 else sys.argv[6]
+        num_batchs: int = 16 if not len(sys.argv) >= 8 else sys.argv[7]
+        poct_memoria_cpu: float = 0.9 if not len(sys.argv) >= 9 else sys.argv[8]
+        main(dir, dir_dataset, dir_resultado, model_id, max_length, num_epochs, num_batchs, poct_memoria_cpu)
     except Exception as e:
         logging.error(f"Error ao pegar as informações passadas por linha de comando: {e}")
         exit()
