@@ -82,12 +82,6 @@ def ler_datasets(dir: str) -> Dataset:
         logging.error(f"Erro ao ler os datasets: {e}")
         exit()
 
-def get_mean_agrupamento(lista_dataset: list[Dataset]) -> int:
-    soma = 0
-    for dataset in lista_dataset:
-        soma += len(dataset)
-    return round(soma/len(lista_dataset))
-
 def get_num_class(dataset: dict[str, Dataset]) -> int:
     return len(dataset["labels"][0])
 
@@ -122,13 +116,11 @@ def group_by(dataset: Dataset) -> list[Dataset]:
         lista_grupos.append(dataset.filter(lambda x: x["group"]==grupo))
     return lista_grupos
 
-def cria_otimizador(num_train_steps: int):
+def cria_otimizador():
     try:
         optimizer, _ = create_optimizer(
             init_lr=2e-5,
-            num_train_steps=num_train_steps,
             weight_decay_rate=0.01,
-            num_warmup_steps=0,
         )
         return optimizer
     except Exception as e:
@@ -202,8 +194,8 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, max_leng
         ## For para percorrer os datasets a serem utilizados no treinamento
         for arquivo_nome in list(filter(lambda x: x.endswith(".json"), os.listdir(f"{dir}{dir_dataset}"))):
 
-            if arquivo_nome in os.listdir(f"{dir}{dir_resultado}"):
-                logging.info(f"- Já foi realizado o treinamento com o dataset {arquivo_nome}- Inicio / Fim")
+            if f"{num_batchs}_{arquivo_nome}" in os.listdir(f"{dir}{dir_resultado}"):
+                logging.info(f"- Já foi realizado o treinamento com o dataset {arquivo_nome} com batch {num_batchs} - Inicio / Fim")
                 continue
             
             logging.info(f"- Processo de treinamento usando o dataset {arquivo_nome} - Inicio")
@@ -230,12 +222,8 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, max_leng
             dataset_agrupado = group_by(dataset)
             logging.info(f"\t- Agrupando os dados do dataset {arquivo_nome} - Fim")
 
-            logging.info("\t- Pegando o tamanho medio dos agrupamentos - Inicio")
-            tam_mean = get_mean_agrupamento(dataset_agrupado)
-            logging.info("\t- Pegando o tamanho medio dos agrupamentos - Fim")
-
             logging.info("\t- Criando um otimizador - Inicio")
-            optimizer = cria_otimizador((tam_mean  // num_batchs) * num_epochs)
+            optimizer = cria_otimizador()
             logging.info("\t- Criando um otimizador - Fim")
 
             logging.info(f"\t- Removendo colunas desnecessárias do dataset {arquivo_nome} - Inicio")
@@ -253,6 +241,10 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, max_leng
 
             logging.info(f"- Processo de treinamento usando o dataset {arquivo_nome} - Fim")
 
+            logging.info(f"- Salvando o modelo {num_batchs}_{arquivo_nome} - Inicio")
+            model.save(f"{dir}{dir_model}modelo_{num_batchs}_{arquivo_nome[:-5]}")
+            logging.info(f"- Salvando o modelo {num_batchs}_{arquivo_nome} - Fim")
+
             ## Limpando memórias
             K.clear_session()
             del model
@@ -268,12 +260,13 @@ if __name__ == "__main__":
         dir: str = "./" if not len(sys.argv) >= 2 else sys.argv[1]
         dir_dataset: str = "data/" if not len(sys.argv) >= 3 else sys.argv[2]
         dir_resultado: str = "results/" if not len(sys.argv) >= 4 else sys.argv[3]
-        model_id: str = 'neuralmind/bert-base-portuguese-cased' if not len(sys.argv) >= 5 else sys.argv[4]
-        max_length: int = 128 if not len(sys.argv) >= 6 else sys.argv[5]
-        num_epochs: int = 3 if not len(sys.argv) >= 7 else sys.argv[6]
-        num_batchs: int = 16 if not len(sys.argv) >= 8 else sys.argv[7]
-        poct_memoria_cpu: float = 0.9 if not len(sys.argv) >= 9 else sys.argv[8]
-        main(dir, dir_dataset, dir_resultado, model_id, max_length, num_epochs, num_batchs, poct_memoria_cpu)
+        dir_model: str = "models/" if not len(sys.argv) >= 5 else sys.argv[4]
+        model_id: str = 'neuralmind/bert-base-portuguese-cased' if not len(sys.argv) >= 6 else sys.argv[5]
+        max_length: int = 128 if not len(sys.argv) >= 7 else sys.argv[6]
+        num_epochs: int = 3 if not len(sys.argv) >= 8 else sys.argv[7]
+        num_batchs: int = 16 if not len(sys.argv) >= 9 else sys.argv[8]
+        poct_memoria_cpu: float = 0.9 if not len(sys.argv) >= 10 else sys.argv[9]
+        main(dir, dir_dataset, dir_resultado, dir_model, model_id, max_length, num_epochs, num_batchs, poct_memoria_cpu)
     except Exception as e:
         logging.error(f"Error ao pegar as informações passadas por linha de comando: {e}")
         exit()
