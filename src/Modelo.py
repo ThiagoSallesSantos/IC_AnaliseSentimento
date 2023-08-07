@@ -178,7 +178,7 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, nu
         logging.error(f"Erro no treinamento: {e}")
         exit()
 
-def main(dir: str, dir_dataset: str, dir_resultado: str, model_id: str, max_length: int, num_epochs: int, num_batchs: int, poct_memoria_cpu: float) -> None:
+def main(dir: str, dir_dataset: str, dir_resultado: str, dir_model: str, model_id: str, max_length: int, num_epochs: int, num_batchs: int, poct_memoria_cpu: float) -> None:
     try:
         logging.info("---Iniciado a execução do código!---")
         ## Verificando compatibiliada com a GPU
