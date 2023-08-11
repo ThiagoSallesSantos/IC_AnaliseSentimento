@@ -118,11 +118,7 @@ def group_by(dataset: Dataset) -> list[Dataset]:
 
 def cria_otimizador():
     try:
-        optimizer, _ = create_optimizer(
-            init_lr=2e-5,
-            weight_decay_rate=0.01,
-        )
-        return optimizer
+        return tf.keras.optimizers.Adam(learning_rate=2e-5)
     except Exception as e:
         logging.error(f"Erro ao criar o otimizador: {e}")
         exit()
