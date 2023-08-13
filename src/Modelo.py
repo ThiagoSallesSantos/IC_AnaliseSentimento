@@ -260,7 +260,7 @@ if __name__ == "__main__":
         model_id: str = 'neuralmind/bert-base-portuguese-cased' if not len(sys.argv) >= 6 else sys.argv[5]
         max_length: int = 128 if not len(sys.argv) >= 7 else sys.argv[6]
         num_epochs: int = 3 if not len(sys.argv) >= 8 else sys.argv[7]
-        num_batchs: int = 16 if not len(sys.argv) >= 9 else sys.argv[8]
+        num_batchs: int = 32 if not len(sys.argv) >= 9 else sys.argv[8]
         poct_memoria_cpu: float = 0.9 if not len(sys.argv) >= 10 else sys.argv[9]
         main(dir, dir_dataset, dir_resultado, dir_model, model_id, max_length, num_epochs, num_batchs, poct_memoria_cpu)
     except Exception as e:
