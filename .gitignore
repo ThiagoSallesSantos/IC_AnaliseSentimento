@@ -1,4 +1,5 @@
-data
-.ipynb_checkpoints
-venv
+data/
+.ipynb_checkpoints/
+venv/
 log.txt
+models/
