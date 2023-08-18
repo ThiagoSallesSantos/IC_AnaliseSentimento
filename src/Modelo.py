@@ -176,7 +176,7 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, nu
 
 def main(dir: str, dir_dataset: str, dir_resultado: str, dir_model: str, model_id: str, max_length: int, num_epochs: int, num_batchs: int, poct_memoria_cpu: float) -> None:
     try:
-        logging.info("---Iniciado a execução do código!---")
+        logging.info("\n\n\n---Iniciado a execução do código!---")
         ## Verificando compatibiliada com a GPU
         logging.info("- Verificando compatibilidade com a GPU - Inicio")
         verifica_GPU(poct_memoria_cpu)
@@ -186,9 +186,12 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, dir_model: str, model_i
         logging.info("- Pegando o tokenizador - Inicio")
         tokenizer = get_tokenizer(model_id)
         logging.info("- Pegando o tokenizador - Fim")
+        
+        lista_arquivos = list(filter(lambda x: x.endswith(".json"), os.listdir(f"{dir}{dir_dataset}")))
+        logging.info(f"- Lista de datasets para treinamento {str(lista_arquivos)} -")
 
         ## For para percorrer os datasets a serem utilizados no treinamento
-        for arquivo_nome in list(filter(lambda x: x.endswith(".json"), os.listdir(f"{dir}{dir_dataset}"))):
+        for arquivo_nome in lista_arquivos:
 
             if f"{num_batchs}_batchs_{arquivo_nome}" in os.listdir(f"{dir}{dir_resultado}"):
                 logging.info(f"- Já foi realizado o treinamento com o dataset {arquivo_nome} com batch {num_batchs} - Inicio / Fim")
