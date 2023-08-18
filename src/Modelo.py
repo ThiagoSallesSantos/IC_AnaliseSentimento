@@ -190,7 +190,7 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, dir_model: str, model_i
         ## For para percorrer os datasets a serem utilizados no treinamento
         for arquivo_nome in list(filter(lambda x: x.endswith(".json"), os.listdir(f"{dir}{dir_dataset}"))):
 
-            if f"{num_batchs}_{arquivo_nome}" in os.listdir(f"{dir}{dir_resultado}"):
+            if f"{num_batchs}_batchs_{arquivo_nome}" in os.listdir(f"{dir}{dir_resultado}"):
                 logging.info(f"- Já foi realizado o treinamento com o dataset {arquivo_nome} com batch {num_batchs} - Inicio / Fim")
                 continue
             
