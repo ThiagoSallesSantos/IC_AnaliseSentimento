@@ -231,7 +231,7 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, dir_model: str, model_i
             logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Fim")
 
             logging.info(f"\t- Salvando os resultados obtidos - Inicio")
-            with open(f"{dir}{dir_resultado}{arquivo_nome}", "w") as arquivo:
+            with open(f"{dir}{dir_resultado}{num_batchs}_{arquivo_nome}", "w") as arquivo:
                 json.dump(resultado, arquivo, indent=4)
             logging.info(f"\t- Salvando os resultados obtidos - Fim")
 
