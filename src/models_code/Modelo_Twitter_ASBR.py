@@ -1,9 +1,9 @@
 import tensorflow as tf
-from datasets import Dataset, concatenate_datasets
+from datasets import Dataset
 from transformers import AutoTokenizer
 from transformers import TFAutoModelForSequenceClassification
-from transformers import create_optimizer
 from keras import backend as K
+from keras.utils.np_utils import to_categorical
 import numpy as np
 import logging
 import json
@@ -22,37 +22,26 @@ def func_loss(y_true, y_pred):
     return loss(y_true, y_pred.logits).numpy()
 
 def func_acc(y_true, y_pred):
-    y_pred = np.argmax(y_pred.logits, axis=1)
-    y_true = np.argmax(y_true, axis=1)
-    acc = tf.keras.metrics.Accuracy()
-    acc.update_state(y_true, y_pred)
-    return acc.result().numpy()
+    metrica = tf.keras.metrics.CategoricalAccuracy()
+    metrica.update_state(y_true, y_pred.logits)
+    return metrica.result().numpy()
 
-def func_precision(y_true, y_pred):
-    y_pred = np.argmax(y_pred.logits, axis=1)
-    y_true = np.argmax(y_true, axis=1)
+def func_precision(y_true, y_pred, num_class):
+    y_pred = to_categorical(np.argmax(y_pred.logits, axis=1), num_classes=num_class)
     precision = tf.keras.metrics.Precision()
     precision.update_state(y_true, y_pred)
     return precision.result().numpy()
 
-def func_recall(y_true, y_pred):
-    y_pred = np.argmax(y_pred.logits, axis=1)
-    y_true = np.argmax(y_true, axis=1)
+def func_recall(y_true, y_pred, num_class):
+    y_pred = to_categorical(np.argmax(y_pred.logits, axis=1), num_classes=num_class)
     recall = tf.keras.metrics.Recall()
     recall.update_state(y_true, y_pred)
     return recall.result().numpy()
 
-def func_f1(y_true, y_pred):
-    precision = func_precision(y_true, y_pred)
-    recall = func_recall(y_true, y_pred)
+def func_f1(y_true, y_pred, num_class):
+    precision = func_precision(y_true, y_pred, num_class)
+    recall = func_recall(y_true, y_pred, num_class)
     return 2*((precision*recall)/(precision+recall+K.epsilon()))
-
-def func_roc_auc(y_true, y_pred):
-    y_pred = np.argmax(y_pred.logits, axis=1)
-    y_true = np.argmax(y_true, axis=1)
-    roc_auc = tf.keras.metrics.AUC()
-    roc_auc.update_state(y_true, y_pred)
-    return roc_auc.result().numpy()
 
 ###############- Fim
 
@@ -110,11 +99,12 @@ def tokenizador(dataset: Dataset, tokenizer, max_length: int, num_batchs: int) -
         logging.error(f"Erro realizar a tokenização: {e}")
         exit()
 
-def group_by(dataset: Dataset) -> list[Dataset]:
-    lista_grupos = []
+def group_by(dataset: Dataset) -> dict[str, Dataset]:
+    dict_grupo = dict({})
     for grupo in set(dataset["group"]):
-        lista_grupos.append(dataset.filter(lambda x: x["group"]==grupo))
-    return lista_grupos
+        dict_grupo.update(dict({grupo: dataset.filter(lambda dado: dado["group"] == grupo)}))
+    return dict_grupo
+
 
 def cria_otimizador():
     try:
@@ -123,20 +113,19 @@ def cria_otimizador():
         logging.error(f"Erro ao criar o otimizador: {e}")
         exit()
 
-def remove_colunas(lista_dataset: list[Dataset], colunas: list[str] = ["text", "group"]):
-    for index, dataset in enumerate(lista_dataset):
-        lista_dataset[index] = dataset.remove_columns(colunas)
-    return lista_dataset
+def remove_colunas(dict_dataset: list[Dataset], colunas: list[str] = ["text", "group", "labels_int"]):
+    for grupo in dict_dataset.keys():
+        dict_dataset[grupo] = dict_dataset[grupo].remove_columns(colunas)
+    return dict_dataset
 
-def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, num_epochs: int, num_batchs: int) -> None:
+def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, num_epochs: int, num_batchs: int, num_class: int) -> None:
     try:
         ## Treino
-        dataset_treino = dataset_agrupado[:-1]
-        dataset_treino = concatenate_datasets(dataset_treino)
+        dataset_treino = dataset_agrupado["train"]
         tf_dataset_treino = model.prepare_tf_dataset(dataset_treino, batch_size=num_batchs, shuffle=True, tokenizer=tokenizer)
         
         ## Teste
-        tf_dataset_teste = model.prepare_tf_dataset(dataset_agrupado[-1], batch_size=num_batchs, shuffle=False, tokenizer=tokenizer)
+        tf_dataset_teste = model.prepare_tf_dataset(dataset_agrupado["test"], batch_size=num_batchs, shuffle=False, tokenizer=tokenizer)
         
         ## Modelo
         model.compile(
@@ -154,12 +143,11 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, nu
         y_pred = model.predict(tf_dataset_teste, batch_size=num_batchs, use_multiprocessing=True)
 
         ## Metricas
-        acc = func_acc(dataset_agrupado[-1]["labels"], y_pred)
-        precision = func_precision(dataset_agrupado[-1]["labels"], y_pred)
-        recall = func_recall(dataset_agrupado[-1]["labels"], y_pred)
-        f1 = func_f1(dataset_agrupado[-1]["labels"], y_pred)
-        loss = func_loss(dataset_agrupado[-1]["labels"], y_pred)
-        roc_auc = func_roc_auc(dataset_agrupado[-1]["labels"], y_pred)
+        acc = func_acc(dataset_agrupado["test"]["labels"], y_pred)
+        precision = func_precision(dataset_agrupado["test"]["labels"], y_pred, num_class)
+        recall = func_recall(dataset_agrupado["test"]["labels"], y_pred, num_class)
+        f1 = func_f1(dataset_agrupado["test"]["labels"], y_pred, num_class)
+        loss = func_loss(dataset_agrupado["test"]["labels"], y_pred)
         ####################
 
         return list([dict({
@@ -167,8 +155,7 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, nu
             "accuracy" : float(acc),
             "precision" : float(precision),
             "recall" : float(recall),
-            "f1" : float(f1),
-            "roc_auc" : float(roc_auc)
+            "f1" : float(f1)
         })])
     except Exception as e:
         logging.error(f"Erro no treinamento: {e}")
@@ -230,7 +217,7 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, dir_model: str, model_i
             logging.info(f"\t- Removendo colunas desnecessárias do dataset {arquivo_nome} - Fim")    
 
             logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Inicio")
-            resultado = treinamento(model, tokenizer, dataset_agrupado, optimizer, num_epochs, num_batchs)
+            resultado = treinamento(model, tokenizer, dataset_agrupado, optimizer, num_epochs, num_batchs, num_class)
             logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Fim")
 
             logging.info(f"\t- Salvando os resultados obtidos - Inicio")
@@ -263,7 +250,7 @@ if __name__ == "__main__":
         model_id: str = 'neuralmind/bert-base-portuguese-cased' if not len(sys.argv) >= 6 else sys.argv[5]
         max_length: int = 128 if not len(sys.argv) >= 7 else sys.argv[6]
         num_epochs: int = 3 if not len(sys.argv) >= 8 else sys.argv[7]
-        num_batchs: int = 32 if not len(sys.argv) >= 9 else sys.argv[8]
+        num_batchs: int = 16 if not len(sys.argv) >= 9 else sys.argv[8]
         poct_memoria_cpu: float = 0.9 if not len(sys.argv) >= 10 else sys.argv[9]
         main(dir, dir_dataset, dir_resultado, dir_model, model_id, max_length, num_epochs, num_batchs, poct_memoria_cpu)
     except Exception as e:

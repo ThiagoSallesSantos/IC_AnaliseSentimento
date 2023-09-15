@@ -3,3 +3,4 @@ data/
 venv/
 log.txt
 models/
+models_weights/
