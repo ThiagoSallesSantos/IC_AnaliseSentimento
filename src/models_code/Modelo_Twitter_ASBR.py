@@ -22,25 +22,29 @@ def func_loss(y_true, y_pred):
     return loss(y_true, y_pred.logits).numpy()
 
 def func_acc(y_true, y_pred):
-    metrica = tf.keras.metrics.CategoricalAccuracy()
-    metrica.update_state(y_true, y_pred.logits)
-    return metrica.result().numpy()
+    y_pred = np.argmax(y_pred.logits, axis=1)
+    y_true = np.argmax(y_true, axis=1)
+    acc = tf.keras.metrics.Accuracy()
+    acc.update_state(y_true, y_pred)
+    return acc.result().numpy()
 
-def func_precision(y_true, y_pred, num_class):
-    y_pred = to_categorical(np.argmax(y_pred.logits, axis=1), num_classes=num_class)
+def func_precision(y_true, y_pred):
+    y_pred = np.argmax(y_pred.logits, axis=1)
+    y_true = np.argmax(y_true, axis=1)
     precision = tf.keras.metrics.Precision()
     precision.update_state(y_true, y_pred)
     return precision.result().numpy()
 
-def func_recall(y_true, y_pred, num_class):
-    y_pred = to_categorical(np.argmax(y_pred.logits, axis=1), num_classes=num_class)
+def func_recall(y_true, y_pred):
+    y_pred = np.argmax(y_pred.logits, axis=1)
+    y_true = np.argmax(y_true, axis=1)
     recall = tf.keras.metrics.Recall()
     recall.update_state(y_true, y_pred)
     return recall.result().numpy()
 
-def func_f1(y_true, y_pred, num_class):
-    precision = func_precision(y_true, y_pred, num_class)
-    recall = func_recall(y_true, y_pred, num_class)
+def func_f1(y_true, y_pred):
+    precision = func_precision(y_true, y_pred)
+    recall = func_recall(y_true, y_pred)
     return 2*((precision*recall)/(precision+recall+K.epsilon()))
 
 ###############- Fim
@@ -72,7 +76,16 @@ def ler_datasets(dir: str) -> Dataset:
         exit()
 
 def get_num_class(dataset: dict[str, Dataset]) -> int:
-    return len(dataset["labels"][0])
+    return len(set(dataset["labels_int"]))
+
+def remove_coluna_neutro(data):
+    data["labels"].pop(1)
+    return data
+
+def remove_neutro(dataset: Dataset) -> Dataset:
+    dataset = dataset.filter(lambda data: data["labels_int"] != 1)
+    dataset = dataset.map(remove_coluna_neutro)
+    return dataset
 
 def get_tokenizer(model_id: str):
     try:
@@ -104,7 +117,6 @@ def group_by(dataset: Dataset) -> dict[str, Dataset]:
     for grupo in set(dataset["group"]):
         dict_grupo.update(dict({grupo: dataset.filter(lambda dado: dado["group"] == grupo)}))
     return dict_grupo
-
 
 def cria_otimizador():
     try:
@@ -144,9 +156,9 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, nu
 
         ## Metricas
         acc = func_acc(dataset_agrupado["test"]["labels"], y_pred)
-        precision = func_precision(dataset_agrupado["test"]["labels"], y_pred, num_class)
-        recall = func_recall(dataset_agrupado["test"]["labels"], y_pred, num_class)
-        f1 = func_f1(dataset_agrupado["test"]["labels"], y_pred, num_class)
+        precision = func_precision(dataset_agrupado["test"]["labels"], y_pred)
+        recall = func_recall(dataset_agrupado["test"]["labels"], y_pred)
+        f1 = func_f1(dataset_agrupado["test"]["labels"], y_pred)
         loss = func_loss(dataset_agrupado["test"]["labels"], y_pred)
         ####################
 
@@ -191,10 +203,17 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, dir_model: str, model_i
             dataset = ler_datasets(f"{dir}{dir_dataset}{arquivo_nome}")
             logging.info(f"\t- Lendo o dataset {arquivo_nome} - Fim")
 
+            #########################################################
+            ## Removendo neutro
+            # logging.info(f"\t- Removendo neutro - Inicio")
+            # dataset = remove_neutro(dataset)
+            # logging.info(f"\t- Removendo neutro {arquivo_nome} - Fim")
+            #########################################################
+
             ## Pegando o valor de k-fold e num_class do dataset
             logging.info("\t- Pegando a quantidade de classes (Positivo, Negativo e Neutro) - Inicio")
             num_class = get_num_class(dataset)
-            logging.info("\t- Pegando a quantidade de classes (Positivo, Negativo e Neutro) - Fim")
+            logging.info(f"\t- Pegando a quantidade de classes (Positivo, Negativo e Neutro) Quantidade encontrada: {num_class} - Fim")
             
             logging.info(f"\t- Pegando o modelo para treinamento com qtd classes: {num_class} - Inicio")
             model = get_modelo(model_id, num_class)
@@ -250,7 +269,7 @@ if __name__ == "__main__":
         model_id: str = 'neuralmind/bert-base-portuguese-cased' if not len(sys.argv) >= 6 else sys.argv[5]
         max_length: int = 128 if not len(sys.argv) >= 7 else sys.argv[6]
         num_epochs: int = 3 if not len(sys.argv) >= 8 else sys.argv[7]
-        num_batchs: int = 16 if not len(sys.argv) >= 9 else sys.argv[8]
+        num_batchs: int = 32 if not len(sys.argv) >= 9 else sys.argv[8]
         poct_memoria_cpu: float = 0.9 if not len(sys.argv) >= 10 else sys.argv[9]
         main(dir, dir_dataset, dir_resultado, dir_model, model_id, max_length, num_epochs, num_batchs, poct_memoria_cpu)
     except Exception as e:
