@@ -2,6 +2,7 @@ import tensorflow as tf
 from datasets import Dataset
 from transformers import AutoTokenizer
 from transformers import TFAutoModelForSequenceClassification
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 from keras import backend as K
 from keras.utils.np_utils import to_categorical
 import numpy as np
@@ -154,16 +155,27 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, nu
         ## Teste
         y_pred = model.predict(tf_dataset_teste, batch_size=num_batchs, use_multiprocessing=True)
 
-        ## Metricas
-        acc = func_acc(dataset_agrupado["test"]["labels"], y_pred)
-        precision = func_precision(dataset_agrupado["test"]["labels"], y_pred)
-        recall = func_recall(dataset_agrupado["test"]["labels"], y_pred)
-        f1 = func_f1(dataset_agrupado["test"]["labels"], y_pred)
-        loss = func_loss(dataset_agrupado["test"]["labels"], y_pred)
-        ####################
+        print(y_pred.logits, end="\n\n==============\n\n")
+        print(np.argmax(y_pred.logits, axis=1), end="\n\n==============\n\n")
+        print(np.argmax(y_pred.logits, axis=-1), end="\n\n==============\n\n")
+        print(np.asarray(np.argmax(y_pred.logits, axis=-1)).ravel(), end="\n\n==============\n\n")
+        input("Stop...")
 
+        ## Metricas
+        if num_class == 3:
+            acc = accuracy_score(np.argmax(dataset_agrupado["test"]["labels"], axis=1), np.asarray(np.argmax(y_pred.logits, axis=-1)).ravel())
+            precision = precision_score(np.argmax(dataset_agrupado["test"]["labels"], axis=1), np.asarray(np.argmax(y_pred.logits, axis=-1)).ravel(), average='weighted')
+            recall = recall_score(np.argmax(dataset_agrupado["test"]["labels"], axis=1), np.asarray(np.argmax(y_pred.logits, axis=-1)).ravel(), average='weighted')
+            f1 = f1_score(np.argmax(dataset_agrupado["test"]["labels"], axis=1), np.asarray(np.argmax(y_pred.logits, axis=-1)).ravel(), average='weighted')
+
+        else:
+            acc = func_acc(dataset_agrupado["test"]["labels"], y_pred)
+            precision = func_precision(dataset_agrupado["test"]["labels"], y_pred)
+            recall = func_recall(dataset_agrupado["test"]["labels"], y_pred)
+            f1 = func_f1(dataset_agrupado["test"]["labels"], y_pred)
+
+        ####################
         return list([dict({
-            "loss" : float(loss),
             "accuracy" : float(acc),
             "precision" : float(precision),
             "recall" : float(recall),
@@ -269,7 +281,7 @@ if __name__ == "__main__":
         model_id: str = 'neuralmind/bert-base-portuguese-cased' if not len(sys.argv) >= 6 else sys.argv[5]
         max_length: int = 128 if not len(sys.argv) >= 7 else sys.argv[6]
         num_epochs: int = 3 if not len(sys.argv) >= 8 else sys.argv[7]
-        num_batchs: int = 32 if not len(sys.argv) >= 9 else sys.argv[8]
+        num_batchs: int = 16 if not len(sys.argv) >= 9 else sys.argv[8]
         poct_memoria_cpu: float = 0.9 if not len(sys.argv) >= 10 else sys.argv[9]
         main(dir, dir_dataset, dir_resultado, dir_model, model_id, max_length, num_epochs, num_batchs, poct_memoria_cpu)
     except Exception as e:
