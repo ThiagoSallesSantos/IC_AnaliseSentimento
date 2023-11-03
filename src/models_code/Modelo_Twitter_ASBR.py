@@ -48,6 +48,11 @@ def func_f1(y_true, y_pred):
     recall = func_recall(y_true, y_pred)
     return 2*((precision*recall)/(precision+recall+K.epsilon()))
 
+def func_roc_auc(y_true, y_pred):
+    roc_auc = tf.keras.metrics.AUC()
+    roc_auc.update_state(y_true, y_pred)
+    return roc_auc.result().numpy()
+
 ###############- Fim
 
 def busca_GPU() -> list:
@@ -155,12 +160,6 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, nu
         ## Teste
         y_pred = model.predict(tf_dataset_teste, batch_size=num_batchs, use_multiprocessing=True)
 
-        print(y_pred.logits, end="\n\n==============\n\n")
-        print(np.argmax(y_pred.logits, axis=1), end="\n\n==============\n\n")
-        print(np.argmax(y_pred.logits, axis=-1), end="\n\n==============\n\n")
-        print(np.asarray(np.argmax(y_pred.logits, axis=-1)).ravel(), end="\n\n==============\n\n")
-        input("Stop...")
-
         ## Metricas
         if num_class == 3:
             acc = accuracy_score(np.argmax(dataset_agrupado["test"]["labels"], axis=1), np.asarray(np.argmax(y_pred.logits, axis=-1)).ravel())
@@ -173,13 +172,16 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, nu
             precision = func_precision(dataset_agrupado["test"]["labels"], y_pred)
             recall = func_recall(dataset_agrupado["test"]["labels"], y_pred)
             f1 = func_f1(dataset_agrupado["test"]["labels"], y_pred)
+            roc_auc = func_roc_auc(np.argmax(dataset_agrupado["test"]["labels"], axis=1), np.argmax(y_pred.logits, axis=1))
+
 
         ####################
         return list([dict({
             "accuracy" : float(acc),
             "precision" : float(precision),
             "recall" : float(recall),
-            "f1" : float(f1)
+            "f1" : float(f1),
+            "roc_auc" : float(roc_auc)
         })])
     except Exception as e:
         logging.error(f"Erro no treinamento: {e}")
@@ -217,9 +219,9 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, dir_model: str, model_i
 
             #########################################################
             ## Removendo neutro
-            # logging.info(f"\t- Removendo neutro - Inicio")
-            # dataset = remove_neutro(dataset)
-            # logging.info(f"\t- Removendo neutro {arquivo_nome} - Fim")
+            logging.info(f"\t- Removendo neutro - Inicio")
+            dataset = remove_neutro(dataset)
+            logging.info(f"\t- Removendo neutro {arquivo_nome} - Fim")
             #########################################################
 
             ## Pegando o valor de k-fold e num_class do dataset
@@ -281,7 +283,7 @@ if __name__ == "__main__":
         model_id: str = 'neuralmind/bert-base-portuguese-cased' if not len(sys.argv) >= 6 else sys.argv[5]
         max_length: int = 128 if not len(sys.argv) >= 7 else sys.argv[6]
         num_epochs: int = 3 if not len(sys.argv) >= 8 else sys.argv[7]
-        num_batchs: int = 16 if not len(sys.argv) >= 9 else sys.argv[8]
+        num_batchs: int = 32 if not len(sys.argv) >= 9 else sys.argv[8]
         poct_memoria_cpu: float = 0.9 if not len(sys.argv) >= 10 else sys.argv[9]
         main(dir, dir_dataset, dir_resultado, dir_model, model_id, max_length, num_epochs, num_batchs, poct_memoria_cpu)
     except Exception as e:
