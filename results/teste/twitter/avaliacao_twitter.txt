@@ -1,0 +1,46 @@
+Texto: Amélia,
+Muito jovem, assumiu o casamento. Dedicou-se exclusivamente a sua família.
+Ao lado de Arlindo, resistiu... http://t.co/39NmCPZVs3
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps', 'twitter-xlm-roberta', 'bertimbau - twitter_ASBR']
+======================================
+Texto: #CACHAÇA e #PERFUME sao campeãs,em #IMPOSTOS. Cachaça,n posso confirmar.Mas #PERFUME,realmente tá bem salgado.Mas vale a pena,ser #cheirosa
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps', 'twitter-xlm-roberta', 'bertimbau - twitter_ASBR']
+======================================
+Texto: heim, @marifagundesmf 
+oooh modão!! 😢🍺🍻💔👎
+#marianafagundes #eutoficandolouco #cachaca #ressaca… https://t.co/UOesf7cVn5
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps', 'bertimbau - twitter_ASBR']
+======================================
+Texto: Só não deixa eu tomar birra... #birra #pinga #descegelo #decreto #rj #brazil #padrinhos @ La… https://t.co/X8m0LVbIFg
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps', 'bertimbau - twitter_ASBR']
+======================================
+Texto: Que chegue logo as férias, não do conta de passar os fds sóbrio
+#quero #ferias #descanso #cervejada #cachaça #fazenda
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps', 'bertimbau - twitter_ASBR']
+======================================
+Texto: @Ilikegirl_  taa coom um #BAFOO de #Cachaça do Caraaaaaai Orr
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps', 'bertimbau - twitter_ASBR']
+======================================
+Texto: Em defesa do chefe: Luiz Dulci cobra de produtores de cana-de-açúcar aumento da produção de #cachaça.
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps']
+======================================
+Texto: To mordida , de verdade. Mas me aguaaaaarde que quando DER ... @bibicadamasceno @BrunaValentim #thayna #pinga ! HAHA rindo querendo morrer !
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - utlc_apps', 'bertimbau - twitter_ASBR']
+======================================
+Texto: O corno manso do @amaiaraujo não passou d novo! também, matava cursim pra tomar #cachaça!... eu conto mesmo!!!
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - utlc_apps', 'bertimbau - twitter_ASBR']
+======================================
+Texto: Vomitar não é deus... 
+#cachaça
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - utlc_apps']
+======================================

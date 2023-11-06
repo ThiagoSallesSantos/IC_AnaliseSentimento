@@ -1,0 +1,40 @@
+Texto: Aline Dourado Só deixou saudades... :-(
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps', 'bertimbau - twitter_ASBR']
+======================================
+Texto: não está disponivel pra compra ainda??
+Rotulo correto: Positivo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - olist', 'bertimbau - utlc_apps', 'twitter-xlm-roberta', 'bertimbau - twitter_ASBR']
+======================================
+Texto: Muito cará!
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps', 'bertimbau - twitter_ASBR']
+======================================
+Texto: Rapariga...
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps', 'bertimbau - twitter_ASBR']
+======================================
+Texto: Excelente! Porém ainda estou à espera da minha do mês de Agosto. Está demorando, CN!...
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps', 'bertimbau - twitter_ASBR']
+======================================
+Texto: Pena que não é pra minha casa...to poupando pra comprar uma...
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps', 'bertimbau - twitter_ASBR']
+======================================
+Texto: Não perco👏❤
+Rotulo correto: Positivo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - twitter_ASBR']
+======================================
+Texto: Aquilo no palito é uma barata?
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - utlc_apps']
+======================================
+Texto: Cachaça, meditação, Home office! Que balaio de gato é esse?
+Rotulo correto: Negativo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - utlc_movies', 'bertimbau - olist', 'bertimbau - twitter_ASBR']
+======================================
+Texto: Deu água na boca
+Rotulo correto: Positivo
+Erros modelos: ['bertimbau - b2w', 'bertimbau - b2w', 'twitter-xlm-roberta', 'twitter-xlm-roberta']
+======================================
