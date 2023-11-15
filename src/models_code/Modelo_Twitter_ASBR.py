@@ -181,7 +181,7 @@ def treinamento(model, tokenizer, dataset_agrupado: list[Dataset], optimizer, nu
             "precision" : float(precision),
             "recall" : float(recall),
             "f1" : float(f1),
-            "roc_auc" : float(roc_auc)
+            # "roc_auc" : float(roc_auc)
         })])
     except Exception as e:
         logging.error(f"Erro no treinamento: {e}")
@@ -218,10 +218,10 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, dir_model: str, model_i
             logging.info(f"\t- Lendo o dataset {arquivo_nome} - Fim")
 
             #########################################################
-            ## Removendo neutro
-            logging.info(f"\t- Removendo neutro - Inicio")
-            dataset = remove_neutro(dataset)
-            logging.info(f"\t- Removendo neutro {arquivo_nome} - Fim")
+            # ## Removendo neutro
+            # logging.info(f"\t- Removendo neutro - Inicio")
+            # dataset = remove_neutro(dataset)
+            # logging.info(f"\t- Removendo neutro {arquivo_nome} - Fim")
             #########################################################
 
             ## Pegando o valor de k-fold e num_class do dataset
@@ -254,14 +254,14 @@ def main(dir: str, dir_dataset: str, dir_resultado: str, dir_model: str, model_i
             logging.info(f"\t- Treinamento do dataset {arquivo_nome} - Fim")
 
             logging.info(f"\t- Salvando os resultados obtidos - Inicio")
-            with open(f"{dir}{dir_resultado}{num_batchs}_{arquivo_nome}", "w") as arquivo:
+            with open(f"{dir}{dir_resultado}dataset_{num_batchs}_{num_class}_classes_{arquivo_nome}", "w") as arquivo:
                 json.dump(resultado, arquivo, indent=4)
             logging.info(f"\t- Salvando os resultados obtidos - Fim")
 
             logging.info(f"- Processo de treinamento usando o dataset {arquivo_nome} - Fim")
 
             logging.info(f"- Salvando o modelo {num_batchs}_{arquivo_nome} - Inicio")
-            model.save(f"{dir}{dir_model}modelo_{num_batchs}_{arquivo_nome[:-5]}")
+            model.save(f"{dir}{dir_model}modelo_{num_batchs}_{arquivo_nome[:-5]}_{num_class}_classes")
             logging.info(f"- Salvando o modelo {num_batchs}_{arquivo_nome} - Fim")
 
             ## Limpando memórias
@@ -283,7 +283,7 @@ if __name__ == "__main__":
         model_id: str = 'neuralmind/bert-base-portuguese-cased' if not len(sys.argv) >= 6 else sys.argv[5]
         max_length: int = 128 if not len(sys.argv) >= 7 else sys.argv[6]
         num_epochs: int = 3 if not len(sys.argv) >= 8 else sys.argv[7]
-        num_batchs: int = 32 if not len(sys.argv) >= 9 else sys.argv[8]
+        num_batchs: int = 16 if not len(sys.argv) >= 9 else sys.argv[8]
         poct_memoria_cpu: float = 0.9 if not len(sys.argv) >= 10 else sys.argv[9]
         main(dir, dir_dataset, dir_resultado, dir_model, model_id, max_length, num_epochs, num_batchs, poct_memoria_cpu)
     except Exception as e:
